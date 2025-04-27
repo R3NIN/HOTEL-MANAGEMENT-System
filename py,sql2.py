@@ -286,4 +286,3 @@ print("=== End of Session ===")
 # Close the database connection
 cursor.close()
 db.close()
-
