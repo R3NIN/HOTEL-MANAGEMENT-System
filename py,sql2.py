@@ -90,8 +90,6 @@ def add_guest(current_user):
         cursor.execute(query, values)
         db.commit()
         print(f"\n✅ Guest {first_name} {last_name} added successfully!")
-    except mysql.connector.Error as err:
-        print(f"❌ Error adding guest: {err}")
 
         cursor.execute("SELECT * FROM Guests WHERE Email = %s", (email,))
         guest = cursor.fetchone()
