@@ -105,73 +105,6 @@ def add_guest(current_user):
     except mysql.connector.Error as err:
         print(f"❌ Error adding guest: {err}")
 
-def view_bookings(current_user):
-    print("\n=== Your Bookings ===")
-    query = """
-    SELECT b.BookingID, g.FirstName, g.LastName, r.RoomNumber, b.CheckInDate, b.CheckOutDate, b.TotalAmount
-    FROM Bookings b
-    JOIN Guests g ON b.GuestID = g.GuestID
-    JOIN Rooms r ON b.RoomID = r.RoomID
-    WHERE g.Username = %s
-    """
-    try:
-        cursor.execute(query, (current_user,))
-        bookings = cursor.fetchall()
-        if not bookings:
-            print("No bookings found for your account!")
-        else:
-            for booking in bookings:
-                print(f"Booking ID: {booking[0]} | Guest: {booking[1]} {booking[2]} | Room: {booking[3]} | "
-                      f"Check-In: {booking[4]} | Check-Out: {booking[5]} | Total: ${booking[6]}")
-    except mysql.connector.Error as err:
-        print(f"Error viewing bookings: {err}")
-
-def delete_booking(current_user):
-    view_bookings(current_user)
-    booking_id = input("Enter the Booking ID to delete: ")
-    # Check if the booking exists
-    cursor.execute("SELECT RoomID FROM Bookings WHERE BookingID = %s", (booking_id,))
-    room = cursor.fetchone()
-    if not room:
-        print("Booking not found!")
-        return
-    room_id = room[0]
-    # Delete the payment related to the booking (if exists)
-    cursor.execute("DELETE FROM Payments WHERE BookingID = %s", (booking_id,))
-    try:
-        # Delete the booking
-        cursor.execute("DELETE FROM Bookings WHERE BookingID = %s", (booking_id,))
-        # Update the room status to available
-        cursor.execute("UPDATE Rooms SET IsAvailable = TRUE WHERE RoomID = %s", (room_id,))
-        db.commit()
-        print(f"Booking ID {booking_id} deleted and room set available!")
-    except mysql.connector.Error as err:
-        print(f"Error deleting booking: {err}")
-def make_payment(current_user):
-    view_bookings(current_user)
-    booking_id = input("Enter the Booking ID to make payment for: ")
-
-    # Check if payment already exists
-    cursor.execute("SELECT * FROM Payments WHERE BookingID = %s", (booking_id,))
-    if cursor.fetchone():
-        print("Payment already made for this booking!")
-        return
-
-    amount = float(input("Enter amount to pay: "))
-    method = input("Payment Method (Cash/Online/Credit Card): ")
-    payment_date = datetime.now().strftime('%Y-%m-%d')
-
-    query = """
-    INSERT INTO Payments (BookingID, PaymentDate, AmountPaid, PaymentMethod)
-    VALUES (%s, %s, %s, %s)
-    """
-    values = (booking_id, payment_date, amount, method)
-    try:
-        cursor.execute(query, values)
-        db.commit()
-        print(f"Payment of ${amount} for Booking ID {booking_id} recorded successfully!")
-    except mysql.connector.Error as err:
-        print(f"Error recording payment: {err}")
 
 def check_room_availability():
     print("\n=== Room Availability ===")
@@ -186,6 +119,7 @@ def check_room_availability():
                 print(f"Room: {room[0]} | Type: {room[1]} | Status: Available")
     except mysql.connector.Error as err:
         print(f"Error checking room availability: {err}")
+
 
 def book_room(current_user):
     print("\n=== Available Guests ===")
@@ -234,6 +168,78 @@ def book_room(current_user):
         print(f"Error booking room: {err}")
 
     view_bookings(current_user)
+
+
+def view_bookings(current_user):
+    print("\n=== Your Bookings ===")
+    query = """
+    SELECT b.BookingID, g.FirstName, g.LastName, r.RoomNumber, b.CheckInDate, b.CheckOutDate, b.TotalAmount
+    FROM Bookings b
+    JOIN Guests g ON b.GuestID = g.GuestID
+    JOIN Rooms r ON b.RoomID = r.RoomID
+    WHERE g.Username = %s
+    """
+    try:
+        cursor.execute(query, (current_user,))
+        bookings = cursor.fetchall()
+        if not bookings:
+            print("No bookings found for your account!")
+        else:
+            for booking in bookings:
+                print(f"Booking ID: {booking[0]} | Guest: {booking[1]} {booking[2]} | Room: {booking[3]} | "
+                      f"Check-In: {booking[4]} | Check-Out: {booking[5]} | Total: ${booking[6]}")
+    except mysql.connector.Error as err:
+        print(f"Error viewing bookings: {err}")
+
+
+def delete_booking(current_user):
+    view_bookings(current_user)
+    booking_id = input("Enter the Booking ID to delete: ")
+    # Check if the booking exists
+    cursor.execute("SELECT RoomID FROM Bookings WHERE BookingID = %s", (booking_id,))
+    room = cursor.fetchone()
+    if not room:
+        print("Booking not found!")
+        return
+    room_id = room[0]
+    # Delete the payment related to the booking (if exists)
+    cursor.execute("DELETE FROM Payments WHERE BookingID = %s", (booking_id,))
+    try:
+        # Delete the booking
+        cursor.execute("DELETE FROM Bookings WHERE BookingID = %s", (booking_id,))
+        # Update the room status to available
+        cursor.execute("UPDATE Rooms SET IsAvailable = TRUE WHERE RoomID = %s", (room_id,))
+        db.commit()
+        print(f"Booking ID {booking_id} deleted and room set available!")
+    except mysql.connector.Error as err:
+        print(f"Error deleting booking: {err}")
+
+
+def make_payment(current_user):
+    view_bookings(current_user)
+    booking_id = input("Enter the Booking ID to make payment for: ")
+
+    # Check if payment already exists
+    cursor.execute("SELECT * FROM Payments WHERE BookingID = %s", (booking_id,))
+    if cursor.fetchone():
+        print("Payment already made for this booking!")
+        return
+
+    amount = float(input("Enter amount to pay: "))
+    method = input("Payment Method (Cash/Online/Credit Card): ")
+    payment_date = datetime.now().strftime('%Y-%m-%d')
+
+    query = """
+    INSERT INTO Payments (BookingID, PaymentDate, AmountPaid, PaymentMethod)
+    VALUES (%s, %s, %s, %s)
+    """
+    values = (booking_id, payment_date, amount, method)
+    try:
+        cursor.execute(query, values)
+        db.commit()
+        print(f"Payment of ${amount} for Booking ID {booking_id} recorded successfully!")
+    except mysql.connector.Error as err:
+        print(f"Error recording payment: {err}")
 
 # Main Program
 logged_in_user = None
