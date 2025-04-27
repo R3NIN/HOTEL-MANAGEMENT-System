@@ -23,12 +23,12 @@ def display_start_menu():
 def display_management_menu():
     print("\n=== Hotel Management System ===")
     print("1. Add Guest")
-    print("2. View Bookings")
-    print("3. Delete Booking")
-    print("4. Make Payment")
-    print("5. Check Room Availability")
-    print("6. Logout")
-    print("7. Book Room")
+    print("2. Check Room Availability")
+    print("3. Book Room")
+    print("4. View Bookings")
+    print("5. Delete Booking")
+    print("6. Make Payment")
+    print("7. Logout")  # Moved Logout to the last option
     print("Enter your choice: ", end="")
 
 def check_account_exists(username):
@@ -129,20 +129,24 @@ def view_bookings(current_user):
 def delete_booking(current_user):
     view_bookings(current_user)
     booking_id = input("Enter the Booking ID to delete: ")
+    # Check if the booking exists
     cursor.execute("SELECT RoomID FROM Bookings WHERE BookingID = %s", (booking_id,))
     room = cursor.fetchone()
     if not room:
         print("Booking not found!")
         return
     room_id = room[0]
+    # Delete the payment related to the booking (if exists)
+    cursor.execute("DELETE FROM Payments WHERE BookingID = %s", (booking_id,))
     try:
+        # Delete the booking
         cursor.execute("DELETE FROM Bookings WHERE BookingID = %s", (booking_id,))
+        # Update the room status to available
         cursor.execute("UPDATE Rooms SET IsAvailable = TRUE WHERE RoomID = %s", (room_id,))
         db.commit()
         print(f"Booking ID {booking_id} deleted and room set available!")
     except mysql.connector.Error as err:
         print(f"Error deleting booking: {err}")
-
 def make_payment(current_user):
     view_bookings(current_user)
     booking_id = input("Enter the Booking ID to make payment for: ")
@@ -256,21 +260,24 @@ while logged_in_user:
     if choice == "1":
         add_guest(logged_in_user)
     elif choice == "2":
-        view_bookings(logged_in_user)
-    elif choice == "3":
-        delete_booking(logged_in_user)
-    elif choice == "4":
-        make_payment(logged_in_user)
-    elif choice == "5":
         check_room_availability()
-    elif choice == "6":
-        print("Logout")
-        logged_in_user = None
-    elif choice == "7":
+    elif choice == "3":
         book_room(logged_in_user)
+    elif choice == "4":
+        view_bookings(logged_in_user)
+    elif choice == "5":
+        delete_booking(logged_in_user)
+    elif choice == "6":
+        make_payment(logged_in_user)
+    elif choice == "7":
+        print("Logging out...")
+        logged_in_user = None
     else:
         print("Invalid choice! Please try again.")
 
 print("=== End of Session ===")
+
+# Close the database connection
 cursor.close()
 db.close()
+
